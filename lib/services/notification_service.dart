@@ -11,8 +11,13 @@ class NotificationService {
 
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    
-    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
+
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
     const InitializationSettings settings = InitializationSettings(
       android: androidSettings,
@@ -20,6 +25,42 @@ class NotificationService {
     );
 
     await notifications.initialize(settings);
+    // NEW: Request permission for Android 13+ and iOS
+    await _requestPermissions();
+  }
+
+  Future<void> _requestPermissions() async {
+    // iOS
+    await notifications
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
+
+    // Android 13+ runtime permission
+    await notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
+  }
+
+  Future<void> sendDemoNotification(String itemName) async {
+    const androidDetails = AndroidNotificationDetails(
+      'demo_channel',
+      'Demo Notifications',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const details = NotificationDetails(android: androidDetails);
+
+    await notifications.show(
+      999, // fixed ID for demo notifications
+      'Heads up!',
+      '$itemName is expiring soon!',
+      details,
+    );
   }
 
   Future<void> scheduleExpiryNotification(
@@ -44,13 +85,12 @@ class NotificationService {
     await notifications.zonedSchedule(
       id,
       'Food Expiring Soon!',
-      '$foodName expires tomorrow!',
+      '$foodName expires soon!',
       tz.TZDateTime.from(notifyTime, tz.local),
       notificationDetails,
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dateAndTime,
     );
   }
 }

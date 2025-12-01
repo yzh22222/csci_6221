@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Add these permissions HERE -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Optional: telling Google Play your app uses a camera -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <application
         android:label="food_tracker"
         android:name="${applicationName}"

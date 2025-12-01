@@ -24,6 +24,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to scan product barcodes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo access is required for scanning from gallery (optional).</string>
+	<key>NSAllowsArbitraryLoads</key>
+	<true/> <!-- only if needed for network lookups during testing; remove for production -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
