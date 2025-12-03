@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../models/food_item.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
+import '../models/category.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
+  FoodCategory? _selectedFilter;
   final StorageService storage = StorageService();
   final NotificationService notificationService = NotificationService();
 
@@ -25,46 +27,104 @@ class HomeScreenState extends State<HomeScreen> {
   DateTime? pickedDate;
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  FoodCategory selectedCategory = FoodCategory.room;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Food Expiry Tracker")),
+    return Scaffold(  //changed color of appbar
+      appBar: AppBar(title: Text("Food Expiry Tracker", style: TextStyle(color: Colors.white,), ), backgroundColor: Colors.blueAccent,),
       body: ValueListenableBuilder(
         valueListenable: Hive.box<FoodItem>('food_items').listenable(),
         builder: (context, box, _) {
-          final items = box.values.toList();
+          final items = box.values.toList().cast<FoodItem>();
 
-          return ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
+          // 🔹 Group indices by category, so deleteFood(index) still works
+          final frozenIndices = <int>[];
+          final fridgeIndices = <int>[];
+          final pantryIndices = <int>[];
 
-              return ListTile(
-                title: GestureDetector(
-                  onTap: () {
-                    notificationService.sendDemoNotification(item.name);
-                  },
-                  child: Text(
-                    item.name,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+          for (var i = 0; i < items.length; i++) {
+            final item = items[i];
+            if (item.category == FoodCategory.frozen) {
+              frozenIndices.add(i);
+            } else if (item.category == FoodCategory.fridge) {
+              fridgeIndices.add(i);
+            } else if (item.category == FoodCategory.room) {
+              pantryIndices.add(i);
+            }
+          }
+
+          // 🔹 Reuse your existing ListTile layout for each index
+          Widget buildFoodTile(int index) {
+            final item = items[index];
+
+            return ListTile(
+              title: GestureDetector(
+                onTap: () {
+                  notificationService.sendDemoNotification(item.name);
+                },
+                child: Text(
+                  item.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text(
-                  "Expires on: ${formatter.format(item.expirationDate)}",
-                  style: TextStyle(
-                    color:
-                        isOneDayAway(item.expirationDate)
-                            ? Colors.red
-                            : Colors.grey[600],
-                  ),
+              ),
+              subtitle: Text(
+                "Expires on: ${formatter.format(item.expirationDate)}",
+                style: TextStyle(
+                  color: isOneDayAway(item.expirationDate)
+                      ? Colors.red
+                      : Colors.grey[600],
                 ),
-                trailing: IconButton(
-                  icon: Icon(Icons.delete),
-                  onPressed: () => storage.deleteFood(index),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () => storage.deleteFood(index),
+              ),
+            );
+          }
+
+          return ListView(
+            children: [
+              ExpansionTile(
+                title: Text(
+                  '${categoryText(FoodCategory.frozen)} (${frozenIndices.length})',
+                  style: TextStyle(color: Colors.blue),
                 ),
-              );
-            },
+                children: frozenIndices.isEmpty
+                    ? [
+                        const ListTile(
+                          title: Text('No items in this category'),
+                        ),
+                      ]
+                    : frozenIndices.map(buildFoodTile).toList(),
+              ),
+              ExpansionTile(
+                title: Text(
+                  '${categoryText(FoodCategory.fridge)} (${fridgeIndices.length})',
+                  style: TextStyle(color: Colors.blue),
+                ),
+                children: fridgeIndices.isEmpty
+                    ? [
+                        const ListTile(
+                          title: Text('No items in this category'),
+                        ),
+                      ]
+                    : fridgeIndices.map(buildFoodTile).toList(),
+              ),
+              ExpansionTile(
+                title: Text(
+                  '${categoryText(FoodCategory.room)} (${pantryIndices.length})',
+                  style: TextStyle(color: Colors.blue),
+                ),
+                children: pantryIndices.isEmpty
+                    ? [
+                        const ListTile(
+                          title: Text('No items in this category'),
+                        ),
+                      ]
+                    : pantryIndices.map(buildFoodTile).toList(),
+              ),
+            ],
           );
         },
       ),
@@ -204,6 +264,23 @@ class HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 8),
 
+                    // Pick food category
+                    DropdownButtonFormField<FoodCategory>(
+                      value: selectedCategory,
+                      decoration: const InputDecoration(labelText: 'Category'),
+                      items: FoodCategory.values.map((cat) {
+                      return DropdownMenuItem(
+                      value: cat,
+                      child: Text(categoryText(cat)),
+                      );
+                      }).toList(),
+                      onChanged: (value) {
+                      setState(() {
+                      selectedCategory = value!;
+                      });
+                      },
+                      ),
+
                     // ElevatedButton(
                     //   onPressed: () async {
                     //     final time = await showTimePicker(
@@ -238,6 +315,7 @@ class HomeScreenState extends State<HomeScreen> {
                       final item = FoodItem(
                         name: dialogNameCtrl.text,
                         expirationDate: expiry,
+                        category: selectedCategory,
                       );
                       storage.addFood(item);
 

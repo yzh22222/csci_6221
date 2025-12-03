@@ -3,11 +3,13 @@ import 'package:food_tracker/models/food_item.dart';
 import 'package:food_tracker/screens/home_screen.dart';
 import 'package:food_tracker/services/notification_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:food_tracker/models/category.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Hive.initFlutter();
+  Hive.registerAdapter(FoodCategoryAdapter());
   Hive.registerAdapter(FoodItemAdapter());
   await Hive.openBox<FoodItem>('food_items');
 

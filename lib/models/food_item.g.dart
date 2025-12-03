@@ -19,17 +19,20 @@ class FoodItemAdapter extends TypeAdapter<FoodItem> {
     return FoodItem(
       name: fields[0] as String,
       expirationDate: fields[1] as DateTime,
+      category: fields[2] as FoodCategory,
     );
   }
 
   @override
   void write(BinaryWriter writer, FoodItem obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.expirationDate);
+      ..write(obj.expirationDate)
+      ..writeByte(2)
+      ..write(obj.category);
   }
 
   @override
